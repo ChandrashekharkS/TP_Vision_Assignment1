@@ -9,10 +9,10 @@ import gdown
 
 # File ID from Google Drive link
 file_id = "1WE8jpxaRked5wZO2TUWhW2SiMYTKTBMc"
-model_path = "sentence_transformer_model/model.safetensors"
+model_path = "sentence_transformer_model"
 
 # Construct the Google Drive download URL
-model_url = f"https://drive.google.com/uc?id={file_id}"
+model_url = f"https://drive.google.com/drive/folders/1iaox1qYkvhu1biGmgVXb6yKADdFPBXjD?usp=sharing"
 
 # Check if the file already exists
 if not os.path.exists(model_path):
