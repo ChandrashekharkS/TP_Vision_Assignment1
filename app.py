@@ -25,10 +25,10 @@ def load_models():
         download_sentence_transformer(file_id, sentence_transformer_file)
 
     # Load models
-    with open('topic_model.pkl', 'rb') as f:
+    with open('topic_model.joblib', 'rb') as f:
         kmeans = pickle.load(f)
 
-    with open('topic_labels.pkl', 'rb') as f:
+    with open('topic_labels.joblib', 'rb') as f:
         topic_labels = pickle.load(f)
 
     sentence_transformer = pickle.load(open(sentence_transformer_file, 'rb'))
