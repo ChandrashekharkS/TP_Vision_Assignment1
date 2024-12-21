@@ -50,17 +50,16 @@ def analyze_sentiment(message):
     return sentiment_result['label']
 
 df['sentiment'] = df['human_messages'].apply(analyze_sentiment)
+import joblib
+# Save the SentenceTransformer model using joblib
+sentence_transformer_save_path = "sentence_transformer_model.joblib"
+joblib.dump(model, sentence_transformer_save_path)
 
-# Save the SentenceTransformer model in its original format
-model_save_path = "sentence_transformer_model"
-os.makedirs(model_save_path, exist_ok=True)
-model.save(model_save_path)
+# Save KMeans model using joblib
+with open('topic_model.joblib', 'wb') as f:
+    joblib.dump(kmeans, f)
 
-# Save other components with pickle
-with open('topic_model.pkl', 'wb') as f:
-    pickle.dump(kmeans, f)
-
-with open('topic_labels.pkl', 'wb') as f:
-    pickle.dump(cluster_meanings, f)
-
+# Save topic labels using joblib
+with open('topic_labels.joblib', 'wb') as f:
+    joblib.dump(cluster_meanings, f)
 print("Model training and saving completed successfully.")
