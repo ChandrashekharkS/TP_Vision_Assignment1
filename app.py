@@ -7,21 +7,22 @@ from transformers import pipeline
 import os
 import gdown
 
-# File ID from Google Drive link
-file_id = "1WE8jpxaRked5wZO2TUWhW2SiMYTKTBMc"
-model_path = "sentence_transformer_model"
+# Google Drive folder ID
+folder_id = "1iaox1qYkvhu1biGmgVXb6yKADdFPBXjD"
+folder_path = "sentence_transformer_model"
 
-# Construct the Google Drive download URL
-model_url = f"https://drive.google.com/drive/folders/1iaox1qYkvhu1biGmgVXb6yKADdFPBXjD?usp=sharing"
+# Construct the Google Drive download folder URL
+folder_url = f"https://drive.google.com/drive/folders/1iaox1qYkvhu1biGmgVXb6yKADdFPBXjD?usp=sharing"
 
-# Check if the file already exists
-if not os.path.exists(model_path):
-    os.makedirs("sentence_transformer_model", exist_ok=True)
-    print("Downloading the model from Google Drive...")
-    gdown.download(model_url, model_path, quiet=False)
+# Check if the folder already exists
+if not os.path.exists(folder_path):
+    os.makedirs(folder_path, exist_ok=True)
+    print("Downloading the folder from Google Drive...")
+    # Download the entire folder
+    gdown.download_folder(folder_url, quiet=False)
     print("Download completed!")
 else:
-    print("Model file already exists.")
+    print("Folder already exists.")
 
 # Load pre-trained models
 @st.cache_resource
@@ -30,24 +31,28 @@ def load_models():
     Loads the pre-trained models for sentence transformers, KMeans clustering,
     topic labels, and sentiment analysis pipeline.
     """
-    # Load the SentenceTransformer model
-    sentence_transformer = SentenceTransformer("sentence_transformer_model")
+    try:
+        # Load the SentenceTransformer model from the local folder
+        sentence_transformer = SentenceTransformer(folder_path)
 
-    # Load the KMeans topic model
-    with open("topic_model.pkl", "rb") as f:
-        kmeans = pickle.load(f)
+        # Load the KMeans topic model
+        with open(f"{folder_path}/topic_model.pkl", "rb") as f:
+            kmeans = pickle.load(f)
 
-    # Load topic labels
-    with open("topic_labels.pkl", "rb") as f:
-        topic_labels = pickle.load(f)
+        # Load topic labels
+        with open(f"{folder_path}/topic_labels.pkl", "rb") as f:
+            topic_labels = pickle.load(f)
 
-    # Load sentiment analysis pipeline
-    sentiment_analyzer = pipeline(
-        "sentiment-analysis",
-        model="bhadresh-savani/bert-base-uncased-emotion"
-    )
-    
-    return sentence_transformer, kmeans, topic_labels, sentiment_analyzer
+        # Load sentiment analysis pipeline
+        sentiment_analyzer = pipeline(
+            "sentiment-analysis",
+            model="bhadresh-savani/bert-base-uncased-emotion"
+        )
+        
+        return sentence_transformer, kmeans, topic_labels, sentiment_analyzer
+    except Exception as e:
+        st.error(f"Error loading models: {str(e)}")
+        return None, None, None, None
 
 # Function to extract human messages from JSON structure
 def extract_human_messages(conversations):
