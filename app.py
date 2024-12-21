@@ -4,40 +4,29 @@ import json
 import pickle
 from sentence_transformers import SentenceTransformer
 from transformers import pipeline
-
+import os
 
 # Load pre-trained models
-with open('topic_model.pkl', 'rb') as f:
-    kmeans = pickle.load(f)
+@st.cache_resource
+def load_models():
+    # Load the SentenceTransformer model
+    sentence_transformer = SentenceTransformer("sentence_transformer_model")
 
-with open('topic_labels.pkl', 'rb') as f:
-    topic_labels = pickle.load(f)
+    # Load the KMeans topic model
+    with open("topic_model.pkl", "rb") as f:
+        kmeans = pickle.load(f)
 
-import gdown
-import pickle
+    # Load topic labels
+    with open("topic_labels.pkl", "rb") as f:
+        topic_labels = pickle.load(f)
 
-# Google Drive file ID
-file_id = "18Jz7tWApbMPdA9jbG41piOIVok3xhP_w"
-
-# URL format for direct download
-url = f"https://drive.google.com/file/d/18Jz7tWApbMPdA9jbG41piOIVok3xhP_w/view?usp=sharing"
-
-# Download the file
-output = "sentence_transformer.pkl"
-gdown.download(url, output, quiet=False)
-
-# Load the pickle file
-with open(output, "rb") as f:
-    sentence_transformer = pickle.load(f)
-
-print("Model loaded successfully!")
-
-
-# Sentiment analysis pipeline with three classes
-sentiment_analyzer = pipeline(
-    "sentiment-analysis",
-    model="bhadresh-savani/bert-base-uncased-emotion",
-)
+    # Load sentiment analysis pipeline
+    sentiment_analyzer = pipeline(
+        "sentiment-analysis",
+        model="bhadresh-savani/bert-base-uncased-emotion"
+    )
+    
+    return sentence_transformer, kmeans, topic_labels, sentiment_analyzer
 
 # Function to extract human messages from JSON structure
 def extract_human_messages(conversations):
@@ -47,24 +36,20 @@ def extract_human_messages(conversations):
             messages.append(conv['value'])
     return " ".join(messages)
 
-# Function to truncate messages for sentiment analysis
-def truncate_message(message, max_length=512):
-    return message[:max_length]
-
 # Sentiment analysis function
-def analyze_sentiment(message):
-    sentiment_result = sentiment_analyzer(message[:512])[0]
+def analyze_sentiment(sentiment_analyzer, message, max_length=512):
+    truncated_message = message[:max_length]
+    sentiment_result = sentiment_analyzer(truncated_message)[0]
     return sentiment_result['label']
 
 # Main data processing function
-def process_data(file):
+def process_data(file, sentence_transformer, kmeans, topic_labels, sentiment_analyzer):
     # Load JSON file
     data = json.load(file)
     df = pd.DataFrame(data)
 
     # Extract human messages
     df['human_messages'] = df['conversations'].apply(extract_human_messages)
-    df['human_messages'] = df['human_messages'].apply(lambda x: truncate_message(x, 512))
 
     # Generate embeddings for clustering
     embeddings = sentence_transformer.encode(df['human_messages'].tolist())
@@ -77,7 +62,7 @@ def process_data(file):
     df['topic_label'].fillna("Misc", inplace=True)
 
     # Analyze sentiments
-    df['sentiment'] = df['human_messages'].apply(analyze_sentiment)
+    df['sentiment'] = df['human_messages'].apply(lambda x: analyze_sentiment(sentiment_analyzer, x))
 
     # Aggregate counts for display
     topic_counts = df['topic_label'].value_counts().reset_index()
@@ -115,11 +100,20 @@ def display_sessions(df):
 # Streamlit App
 st.title("Conversation Topic and Sentiment Analysis")
 
+# Load models
+sentence_transformer, kmeans, topic_labels, sentiment_analyzer = load_models()
+
 # File uploader
 uploaded_file = st.file_uploader("Upload a JSON file containing conversations", type="json")
 
 if uploaded_file is not None:
-    df, topic_counts, sentiment_counts = process_data(uploaded_file)
+    df, topic_counts, sentiment_counts = process_data(
+        uploaded_file, 
+        sentence_transformer, 
+        kmeans, 
+        topic_labels, 
+        sentiment_analyzer
+    )
 
     # Navigation sidebar
     page = st.sidebar.selectbox("Select Page", ["Counts", "Sessions"])
