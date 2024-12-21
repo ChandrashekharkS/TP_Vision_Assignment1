@@ -5,6 +5,7 @@ import pickle
 from sentence_transformers import SentenceTransformer
 from transformers import pipeline
 
+
 # Load pre-trained models
 with open('topic_model.pkl', 'rb') as f:
     kmeans = pickle.load(f)
@@ -12,8 +13,25 @@ with open('topic_model.pkl', 'rb') as f:
 with open('topic_labels.pkl', 'rb') as f:
     topic_labels = pickle.load(f)
 
-with open('sentence_transformer.pkl', 'rb') as f:
+import gdown
+import pickle
+
+# Google Drive file ID
+file_id = "18Jz7tWApbMPdA9jbG41piOIVok3xhP_w"
+
+# URL format for direct download
+url = f"https://drive.google.com/file/d/18Jz7tWApbMPdA9jbG41piOIVok3xhP_w/view?usp=sharing"
+
+# Download the file
+output = "sentence_transformer.pkl"
+gdown.download(url, output, quiet=False)
+
+# Load the pickle file
+with open("sentence_transformer.pkl", "rb") as f:
     sentence_transformer = pickle.load(f)
+
+print("Model loaded successfully!")
+
 
 # Sentiment analysis pipeline with three classes
 sentiment_analyzer = pipeline(
