@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import json
-import pickle
+import joblib
 from sentence_transformers import SentenceTransformer
 from transformers import pipeline
 import os
@@ -31,7 +31,7 @@ def load_models():
     with open('topic_labels.joblib', 'rb') as f:
         topic_labels = pickle.load(f)
 
-    sentence_transformer = pickle.load(open(sentence_transformer_file, 'rb'))
+    sentence_transformer = joblib.load(open(sentence_transformer_file, 'rb'))
     return kmeans, topic_labels, sentence_transformer
 
 # Sentiment analysis pipeline with three classes
