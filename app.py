@@ -26,10 +26,10 @@ def load_models():
 
     # Load models
     with open('topic_model.joblib', 'rb') as f:
-        kmeans = pickle.load(f)
+        kmeans = joblib.load(f)
 
     with open('topic_labels.joblib', 'rb') as f:
-        topic_labels = pickle.load(f)
+        topic_labels = joblib.load(f)
 
     sentence_transformer = joblib.load(open(sentence_transformer_file, 'rb'))
     return kmeans, topic_labels, sentence_transformer
