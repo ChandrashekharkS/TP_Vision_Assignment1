@@ -12,7 +12,7 @@ folder_id = "1iaox1qYkvhu1biGmgVXb6yKADdFPBXjD"
 folder_path = "sentence_transformer_model"
 
 # Construct the Google Drive download folder URL
-folder_url = f"https://drive.google.com/drive/folders/1iaox1qYkvhu1biGmgVXb6yKADdFPBXjD?usp=sharing"
+folder_url = f"https://drive.google.com/drive/folders/{folder_id}?usp=sharing"
 
 # Check if the folder already exists
 if not os.path.exists(folder_path):
@@ -33,7 +33,7 @@ def load_models():
     """
     try:
         # Load the SentenceTransformer model from the local folder
-        sentence_transformer = SentenceTransformer(folder_path)
+        sentence_transformer = SentenceTransformer(folder_path, local_files_only=True)
 
         # Load the KMeans topic model
         with open(f"{folder_path}/topic_model.pkl", "rb") as f:
