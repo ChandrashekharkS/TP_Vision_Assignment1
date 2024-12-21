@@ -5,10 +5,31 @@ import pickle
 from sentence_transformers import SentenceTransformer
 from transformers import pipeline
 import os
+import gdown
+
+# File ID from Google Drive link
+file_id = "1WE8jpxaRked5wZO2TUWhW2SiMYTKTBMc"
+model_path = "sentence_transformer_model/model.safetensors"
+
+# Construct the Google Drive download URL
+model_url = f"https://drive.google.com/uc?id={file_id}"
+
+# Check if the file already exists
+if not os.path.exists(model_path):
+    os.makedirs("sentence_transformer_model", exist_ok=True)
+    print("Downloading the model from Google Drive...")
+    gdown.download(model_url, model_path, quiet=False)
+    print("Download completed!")
+else:
+    print("Model file already exists.")
 
 # Load pre-trained models
 @st.cache_resource
 def load_models():
+    """
+    Loads the pre-trained models for sentence transformers, KMeans clustering,
+    topic labels, and sentiment analysis pipeline.
+    """
     # Load the SentenceTransformer model
     sentence_transformer = SentenceTransformer("sentence_transformer_model")
 
@@ -30,6 +51,9 @@ def load_models():
 
 # Function to extract human messages from JSON structure
 def extract_human_messages(conversations):
+    """
+    Extracts human messages from the conversation JSON structure.
+    """
     messages = []
     for conv in conversations:
         if conv['from'] == 'human':
@@ -38,43 +62,56 @@ def extract_human_messages(conversations):
 
 # Sentiment analysis function
 def analyze_sentiment(sentiment_analyzer, message, max_length=512):
+    """
+    Analyzes sentiment of a given message using the sentiment analyzer.
+    """
     truncated_message = message[:max_length]
     sentiment_result = sentiment_analyzer(truncated_message)[0]
     return sentiment_result['label']
 
 # Main data processing function
 def process_data(file, sentence_transformer, kmeans, topic_labels, sentiment_analyzer):
-    # Load JSON file
-    data = json.load(file)
-    df = pd.DataFrame(data)
+    """
+    Processes the uploaded JSON file and performs topic and sentiment analysis.
+    """
+    try:
+        # Load JSON file
+        data = json.load(file)
+        df = pd.DataFrame(data)
 
-    # Extract human messages
-    df['human_messages'] = df['conversations'].apply(extract_human_messages)
+        # Extract human messages
+        df['human_messages'] = df['conversations'].apply(extract_human_messages)
 
-    # Generate embeddings for clustering
-    embeddings = sentence_transformer.encode(df['human_messages'].tolist())
+        # Generate embeddings for clustering
+        embeddings = sentence_transformer.encode(df['human_messages'].tolist())
 
-    # Predict topics
-    df['topic'] = kmeans.predict(embeddings)
-    df['topic_label'] = df['topic'].map(topic_labels)
+        # Predict topics
+        df['topic'] = kmeans.predict(embeddings)
+        df['topic_label'] = df['topic'].map(topic_labels)
 
-    # Handle edge case: assign "Misc" if topic label is missing
-    df['topic_label'].fillna("Misc", inplace=True)
+        # Handle edge case: assign "Misc" if topic label is missing
+        df['topic_label'].fillna("Misc", inplace=True)
 
-    # Analyze sentiments
-    df['sentiment'] = df['human_messages'].apply(lambda x: analyze_sentiment(sentiment_analyzer, x))
+        # Analyze sentiments
+        df['sentiment'] = df['human_messages'].apply(lambda x: analyze_sentiment(sentiment_analyzer, x))
 
-    # Aggregate counts for display
-    topic_counts = df['topic_label'].value_counts().reset_index()
-    topic_counts.columns = ['Topic', 'Count']
+        # Aggregate counts for display
+        topic_counts = df['topic_label'].value_counts().reset_index()
+        topic_counts.columns = ['Topic', 'Count']
 
-    sentiment_counts = df['sentiment'].value_counts().reset_index()
-    sentiment_counts.columns = ['Sentiment', 'Count']
+        sentiment_counts = df['sentiment'].value_counts().reset_index()
+        sentiment_counts.columns = ['Sentiment', 'Count']
 
-    return df, topic_counts, sentiment_counts
+        return df, topic_counts, sentiment_counts
+    except Exception as e:
+        st.error(f"Error processing data: {str(e)}")
+        return None, None, None
 
 # Function to display aggregated counts
 def display_counts(topic_counts, sentiment_counts):
+    """
+    Displays the aggregated counts of topics and sentiments in table format.
+    """
     st.header("Counts")
     st.subheader("Table 1: Topic Counts")
     st.table(topic_counts)
@@ -84,6 +121,9 @@ def display_counts(topic_counts, sentiment_counts):
 
 # Function to display session details with pagination
 def display_sessions(df):
+    """
+    Displays paginated session details, including human messages, topic labels, and sentiments.
+    """
     st.header("Sessions")
     st.subheader("Assigned Topics and Sentiments")
     st.write("Paginated view of conversations:")
@@ -107,6 +147,7 @@ sentence_transformer, kmeans, topic_labels, sentiment_analyzer = load_models()
 uploaded_file = st.file_uploader("Upload a JSON file containing conversations", type="json")
 
 if uploaded_file is not None:
+    # Process the data and handle errors
     df, topic_counts, sentiment_counts = process_data(
         uploaded_file, 
         sentence_transformer, 
@@ -115,10 +156,11 @@ if uploaded_file is not None:
         sentiment_analyzer
     )
 
-    # Navigation sidebar
-    page = st.sidebar.selectbox("Select Page", ["Counts", "Sessions"])
+    if df is not None and topic_counts is not None and sentiment_counts is not None:
+        # Navigation sidebar
+        page = st.sidebar.selectbox("Select Page", ["Counts", "Sessions"])
 
-    if page == "Counts":
-        display_counts(topic_counts, sentiment_counts)
-    elif page == "Sessions":
-        display_sessions(df)
+        if page == "Counts":
+            display_counts(topic_counts, sentiment_counts)
+        elif page == "Sessions":
+            display_sessions(df)
