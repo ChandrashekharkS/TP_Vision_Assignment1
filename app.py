@@ -27,7 +27,7 @@ output = "sentence_transformer.pkl"
 gdown.download(url, output, quiet=False)
 
 # Load the pickle file
-with open("sentence_transformer.pkl", "rb") as f:
+with open(output, "rb") as f:
     sentence_transformer = pickle.load(f)
 
 print("Model loaded successfully!")
